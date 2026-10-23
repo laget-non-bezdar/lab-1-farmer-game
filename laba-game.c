@@ -205,4 +205,42 @@ int main() {
                 break;
             }
 
-           
+            case 6: {
+                // вариант 10 пошло задание короче
+                printf("\n--- Инвентарь ДО устранения дубликатов ---\n");
+                print_inventory(inventory);
+
+                int removed_count = 0;
+
+                // берем каждый слот по очереди 
+                for (int i = 0; i < INVENTORY_SIZE; i++) {
+                    // пустые слоты скипаем, ибо задание такое
+                    if (inventory[i] == 0) {
+                        continue;
+                    }
+
+                    // проверяем следующие слоты справа от него
+                    for (int j = i + 1; j < INVENTORY_SIZE; j++) {
+                        // если нашли точно такой же предмет — "делим на ноль" его XD
+                        if (inventory[j] == inventory[i]) {
+                            inventory[j] = 0;
+                            removed_count++;
+                        }
+                    }
+                }
+
+                printf("\n--- Инвентарь ПОСЛЕ устранения дубликатов ---\n");
+                print_inventory(inventory);
+                printf("Убрано дубликатов: %d\n", removed_count);
+                break;
+            }
+
+            default: {
+                printf("Такого пункта нет в меню! Выберите число от 0 до 6\n");
+                break;
+            }
+        }
+    }
+
+    return 0;
+}
