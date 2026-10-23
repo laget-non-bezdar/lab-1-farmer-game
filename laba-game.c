@@ -136,4 +136,73 @@ int main() {
                 break;
             }
 
-            
+            case 4: {
+                int slot_index = 0;
+                int item_id = 0;
+
+                printf("Введите номер слота (от 0 до %d): ", INVENTORY_SIZE - 1);
+                if (scanf("%d", &slot_index) != 1) {
+                    printf("Ошибка! Нужно ввести число.\n");
+                    clear_input();
+                    break;
+                }
+                clear_input();
+
+                // проверка границ
+                if (slot_index < 0 || slot_index >= INVENTORY_SIZE) {
+                    printf("Ошибка! Такого слота нет. Допустимы слоты от 0 до %d.\n", INVENTORY_SIZE - 1);
+                    break;
+                }
+
+                printf("Доступные предметы:\n");
+                printf("1 - Дерево, 2 - Камень, 3 - Семена, 4 - Лейка, 5 - Тяпка,\n");
+                printf("6 - Яблоко, 7 - Пшеница, 8 - Молоко, 9 - Золотая монета\n");
+                printf("Введите ID предмета (от %d до %d): ", MIN_ITEM_ID, MAX_ITEM_ID);
+
+                if (scanf("%d", &item_id) != 1) {
+                    printf("Ошибка! Нужно ввести число.\n");
+                    clear_input();
+                    break;
+                }
+                clear_input();
+
+                if (item_id < MIN_ITEM_ID || item_id > MAX_ITEM_ID) {
+                    printf("Ошибка! ID предмета должен быть от %d до %d.\n", MIN_ITEM_ID, MAX_ITEM_ID);
+                    break;
+                }
+
+                inventory[slot_index] = item_id;
+                printf("Предмет [");
+                print_item_name(item_id);
+                printf("] успешно положен в слот %d!\n", slot_index);
+                break;
+            }
+
+            case 5: {
+                int slot_index = 0;
+                printf("Введите номер слота для очистки (от 0 до %d): ", INVENTORY_SIZE - 1);
+
+                if (scanf("%d", &slot_index) != 1) {
+                    printf("Ошибка! Нужно ввести число.\n");
+                    clear_input();
+                    break;
+                }
+                clear_input();
+
+                if (slot_index < 0 || slot_index >= INVENTORY_SIZE) {
+                    printf("Ошибка! Такого слота нет. Допустимы слоты от 0 до %d.\n", INVENTORY_SIZE - 1);
+                    break;
+                }
+
+                if (inventory[slot_index] == 0) {
+                    printf("Слот %d уже пуст.\n", slot_index);
+                } else {
+                    printf("Предмет [");
+                    print_item_name(inventory[slot_index]);
+                    printf("] выброшен из слота %d.\n", slot_index);
+                    inventory[slot_index] = 0;
+                }
+                break;
+            }
+
+           
