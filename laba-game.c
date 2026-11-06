@@ -199,6 +199,65 @@ void free_map(char **map, int height) {
     }
     free(map);
 }
+// Генерация этажа Башни со сквозняками (Вариант 10)
+void generate_tower_floor(char **map, int height, int width, int *hero_y, int *hero_x) {
+    char winds[4] = {'^', 'v', '<', '>'};
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (y == 0 || y == height - 1 || x == 0 || x == width - 1) {
+                map[y][x] = '#';
+            } else {
+                int r = rand() % 100;
+                if (r < OBSTACLE_CHANCE) {
+                    map[y][x] = (rand() % 2 == 0) ? 'T' : 'R';
+                } else if (r < OBSTACLE_CHANCE + WIND_CHANCE) {
+                    map[y][x] = winds[rand() % 4];
+                } else {
+                    map[y][x] = '.';
+                }
+            }
+        }
+    }
+
+    *hero_y = 1 + rand() % (height - 2);
+    *hero_x = 1 + rand() % (width - 2);
+    map[*hero_y][*hero_x] = 'D';
+
+    int up_y, up_x;
+    do {
+        up_y = 1 + rand() % (height - 2);
+        up_x = 1 + rand() % (width - 2);
+    } while (up_y == *hero_y && up_x == *hero_x);
+
+    map[up_y][up_x] = 'U';
+}
+
+// Отрисовка карты на экране
+void print_map(char **map, int height, int width, int hero_y, int hero_x, int floor_num) {
+    printf("\n=== БАШНЯ: ЭТАЖ %d (Размер %dx%d) ===\n", floor_num, height, width);
+    printf("Обозначения: @ - Герой, # - Стена, T/R - Препятствия, U - Вверх, D - Вниз (Выход)\n");
+    printf("Сквозняк (ветер): ^ (вверх), v (вниз), < (влево), > (вправо)\n\n");
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (y == hero_y && x == hero_x) {
+                printf("@ ");
+            } else {
+                printf("%c ", map[y][x]);
+            }
+        }
+        printf("\n");
+    }
+}
+
+// Проверка проходимости клетки
+int is_walkable(char cell) {
+    if (cell == '#' || cell == 'T' || cell == 'R') {
+        return 0;
+    }
+    return 1;
+}
 
 int main() {
     setlocale(LC_ALL, "");
