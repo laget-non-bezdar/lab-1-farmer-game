@@ -182,6 +182,7 @@ void unpack_map_task() {
     fclose(out);
 }
 
+
 // Выделение динамической памяти под двумерную карту
 char** create_map(int height, int width) {
     char **map = (char**)malloc(height * sizeof(char*));
@@ -199,6 +200,7 @@ void free_map(char **map, int height) {
     }
     free(map);
 }
+
 // Генерация этажа Башни со сквозняками (Вариант 10)
 void generate_tower_floor(char **map, int height, int width, int *hero_y, int *hero_x) {
     char winds[4] = {'^', 'v', '<', '>'};
@@ -258,6 +260,8 @@ int is_walkable(char cell) {
     }
     return 1;
 }
+
+// Главная функция приключения (с механикой сквозняка и сменой этажей)
 void start_adventure() {
     int floor_num = 1;
     int height = MIN_MAP_SIZE + rand() % (MAX_MAP_SIZE - MIN_MAP_SIZE + 1);
@@ -271,7 +275,7 @@ void start_adventure() {
     while (1) {
         print_map(map, height, width, hero_y, hero_x, floor_num);
         printf("\nВы стоите на клетке: [%c]\n", map[hero_y][hero_x]);
-        printf("Управление: W (вверх), A (влево), S (вниз), D (вправо), Q (убежать домой): ");
+        printf("Управление: W (вверх), A (влево), S (вниз), D (вправо), Q (сбежать домой): ");
 
         if (scanf(" %c", &cmd) != 1) {
             clear_input();
@@ -281,11 +285,11 @@ void start_adventure() {
 
         if (cmd == 'q' || cmd == 'Q') {
             if (map[hero_y][hero_x] == 'D') {
-                printf("Вы спустились по лестнице D и успешно вернулись домой!\n");
+                printf("Вы спустились по лестнице D и успешно вернулись домой на ферму!\n");
                 free_map(map, height);
                 break;
             } else {
-                printf("Нельзя убежать!Чтобы выйти домой, нужно встать на лестницу вниз(D)\n");
+                printf("Нельзя сбежать! Чтобы выйти домой (Q), нужно встать на лестницу вниз (D)!\n");
                 continue;
             }
         }
@@ -296,7 +300,7 @@ void start_adventure() {
         else if (cmd == 'a' || cmd == 'A') dx = -1;
         else if (cmd == 'd' || cmd == 'D') dx = 1;
         else {
-            printf("Неизвестная команда!Используйте W, A, S, D , Q.\n");
+            printf("Неизвестная команда! Используйте клавиши W, A, S, D или Q.\n");
             continue;
         }
 
@@ -310,6 +314,45 @@ void start_adventure() {
 
         hero_y = new_y;
         hero_x = new_x;
+
+        // Механика Варианта 10: сквозняк
+        char current_cell = map[hero_y][hero_x];
+        if (current_cell == '^' || current_cell == 'v' || current_cell == '<' || current_cell == '>') {
+            int wind_dy = 0, wind_dx = 0;
+            if (current_cell == '^') wind_dy = -1;
+            else if (current_cell == 'v') wind_dy = 1;
+            else if (current_cell == '<') wind_dx = -1;
+            else if (current_cell == '>') wind_dx = 1;
+
+            printf("Ух! Вы попали на сквозняк (%c)! Ветер сдувает вас...\n", current_cell);
+
+            for (int step = 0; step < WIND_PUSH; step++) {
+                int next_y = hero_y + wind_dy;
+                int next_x = hero_x + wind_dx;
+
+                if (next_y >= 0 && next_y < height && next_x >= 0 && next_x < width && is_walkable(map[next_y][next_x])) {
+                    hero_y = next_y;
+                    hero_x = next_x;
+                    if (map[hero_y][hero_x] == 'U') break;
+                } else {
+                    printf("Ветер ударил вас о препятствие!\n");
+                    break;
+                }
+            }
+        }
+
+        // Переход на новый этаж Башни при наступании на U
+        if (map[hero_y][hero_x] == 'U') {
+            printf("\n>>> Вы нашли лестницу вверх (U)! Поднимаемся на следующий этаж... <<<\n");
+            free_map(map, height);
+
+            floor_num++;
+            height = MIN_MAP_SIZE + rand() % (MAX_MAP_SIZE - MIN_MAP_SIZE + 1);
+            width = MIN_MAP_SIZE + rand() % (MAX_MAP_SIZE - MIN_MAP_SIZE + 1);
+
+            map = create_map(height, width);
+            generate_tower_floor(map, height, width, &hero_y, &hero_x);
+        }
     }
 }
 
@@ -329,7 +372,7 @@ int main() {
     char item_names[MAX_ITEMS][MAX_NAME_LEN];
 
     if (load_items(item_names) == 0) {
-        printf("Файл items.txt не найден!\n");
+        printf("[Предупреждение] Файл items.txt не найден! Включены стандартные названия.\n");
     }
 
     printf("Введите имя вашего фермера (одним словом): ");
@@ -343,12 +386,13 @@ int main() {
         printf("[1] Посмотреть на часы\n");
         printf("[2] Промотать время (Поработать)\n");
         printf("[3] Посмотреть инвентарь\n");
-        printf("[4] Положить предмет в слот\n");
+        printf("[4] Положить предмет\n");
         printf("[5] Выбросить предмет\n");
         printf("[6] Устранить дубликаты (Вариант 10)\n");
         printf("[7] Поиск предмета в рюкзаке по названию\n");
         printf("[8] Записать состояние в дневник (diary.txt)\n");
         printf("[9] Распаковать сжатую карту (Вариант 10)\n");
+        printf("[10] Отправиться в приключение (Башня — Вариант 10)\n");
         printf("[0] Выход\n");
         printf("----------------------------------------------------\n");
         printf("Выберите пункт меню: ");
@@ -442,7 +486,8 @@ int main() {
             }
             case 8: write_diary(farmer_name, current_day, current_hour, inventory, item_names); break;
             case 9: unpack_map_task(); break;
-            default: printf("Такого пункта нет в меню!\n"); break;
+            case 10: start_adventure(); break;
+            default: printf("Такого пункта нет в меню! Выберите число от 0 до 10.\n"); break;
         }
     }
     return 0;
