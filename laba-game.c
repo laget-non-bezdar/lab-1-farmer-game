@@ -258,6 +258,60 @@ int is_walkable(char cell) {
     }
     return 1;
 }
+void start_adventure() {
+    int floor_num = 1;
+    int height = MIN_MAP_SIZE + rand() % (MAX_MAP_SIZE - MIN_MAP_SIZE + 1);
+    int width = MIN_MAP_SIZE + rand() % (MAX_MAP_SIZE - MIN_MAP_SIZE + 1);
+    int hero_y = 1, hero_x = 1;
+
+    char **map = create_map(height, width);
+    generate_tower_floor(map, height, width, &hero_y, &hero_x);
+
+    char cmd;
+    while (1) {
+        print_map(map, height, width, hero_y, hero_x, floor_num);
+        printf("\nВы стоите на клетке: [%c]\n", map[hero_y][hero_x]);
+        printf("Управление: W (вверх), A (влево), S (вниз), D (вправо), Q (убежать домой): ");
+
+        if (scanf(" %c", &cmd) != 1) {
+            clear_input();
+            continue;
+        }
+        clear_input();
+
+        if (cmd == 'q' || cmd == 'Q') {
+            if (map[hero_y][hero_x] == 'D') {
+                printf("Вы спустились по лестнице D и успешно вернулись домой!\n");
+                free_map(map, height);
+                break;
+            } else {
+                printf("Нельзя убежать!Чтобы выйти домой, нужно встать на лестницу вниз(D)\n");
+                continue;
+            }
+        }
+
+        int dy = 0, dx = 0;
+        if (cmd == 'w' || cmd == 'W') dy = -1;
+        else if (cmd == 's' || cmd == 'S') dy = 1;
+        else if (cmd == 'a' || cmd == 'A') dx = -1;
+        else if (cmd == 'd' || cmd == 'D') dx = 1;
+        else {
+            printf("Неизвестная команда!Используйте W, A, S, D , Q.\n");
+            continue;
+        }
+
+        int new_y = hero_y + dy;
+        int new_x = hero_x + dx;
+
+        if (new_y < 0 || new_y >= height || new_x < 0 || new_x >= width || !is_walkable(map[new_y][new_x])) {
+            printf("Бам! Там стена или препятствие (%c), пройти нельзя!\n", map[new_y][new_x]);
+            continue;
+        }
+
+        hero_y = new_y;
+        hero_x = new_x;
+    }
+}
 
 int main() {
     setlocale(LC_ALL, "");
