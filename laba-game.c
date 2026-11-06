@@ -7,26 +7,24 @@
 #include <windows.h>
 #endif
 
-// константы
+// Константы
 #define INVENTORY_SIZE 10
 #define HOURS_IN_DAY 24
 #define START_DAY 1
 #define START_HOUR 8
 #define MIN_ITEM_ID 1
 #define MAX_ITEM_ID 9
-
-// новые константы
 #define MAX_ITEMS 10
 #define MAX_NAME_LEN 32
 #define MAX_LINE_LEN 256
 
-// очистка буфера ввода
+// защита от дурака
 void clear_input() {
     int ch;
     while ((ch = getchar()) != '\n' && ch != EOF);
 }
 
-// загрузка названий предметов из файла items.txt
+// загрузка названий предметов из items.txt
 int load_items(char item_names[MAX_ITEMS][MAX_NAME_LEN]) {
     strcpy(item_names[0], "Пусто");
     strcpy(item_names[1], "Дерево");
@@ -55,7 +53,7 @@ int load_items(char item_names[MAX_ITEMS][MAX_NAME_LEN]) {
     return 1;
 }
 
-// вывод всего инвентаря с названиями из массива
+// вывод инвентаря с названиями
 void print_inventory(int inventory[], char item_names[MAX_ITEMS][MAX_NAME_LEN]) {
     for (int i = 0; i < INVENTORY_SIZE; i++) {
         int id = inventory[i];
@@ -76,9 +74,7 @@ void add_work_time(int work_hours, int *current_day, int *current_hour) {
 int remove_duplicates(int inventory[]) {
     int removed_count = 0;
     for (int i = 0; i < INVENTORY_SIZE; i++) {
-        if (inventory[i] == 0) {
-            continue;
-        }
+        if (inventory[i] == 0) continue;
         for (int j = i + 1; j < INVENTORY_SIZE; j++) {
             if (inventory[j] == inventory[i]) {
                 inventory[j] = 0;
@@ -87,6 +83,39 @@ int remove_duplicates(int inventory[]) {
         }
     }
     return removed_count;
+}
+
+// поиск id предмета по названию
+int find_item_id(char item_names[MAX_ITEMS][MAX_NAME_LEN], char target_name[]) {
+    for (int i = 0; i < MAX_ITEMS; i++) {
+        if (strcmp(item_names[i], target_name) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// запись в дневник (diary.txt)
+void write_diary(char farmer_name[], int day, int hour, int inventory[], char item_names[MAX_ITEMS][MAX_NAME_LEN]) {
+    FILE *file = fopen("diary.txt", "a");
+    if (file == NULL) {
+        printf("Ошибка открытия diary.txt!\n");
+        return;
+    }
+
+    printf("\n=== ЗАПИСЬ В ДНЕВНИК ФЕРМЕРА ===\n");
+    printf("Фермер: %s | День %d, %02d:00\n", farmer_name, day, hour);
+    fprintf(file, "=== ЗАПИСЬ В ДНЕВНИК ФЕРМЕРА ===\n");
+    fprintf(file, "Фермер: %s | День %d, %02d:00\n", farmer_name, day, hour);
+
+    for (int i = 0; i < INVENTORY_SIZE; i++) {
+        int id = inventory[i];
+        printf("Слот %d: [%d] - %s\n", i, id, item_names[id]);
+        fprintf(file, "Слот %d: [%d] - %s\n", i, id, item_names[id]);
+    }
+    fprintf(file, "--------------------------------\n\n");
+    fclose(file);
+    printf("Сводка сохранена в diary.txt!\n");
 }
 
 int main() {
@@ -100,23 +129,33 @@ int main() {
     int current_hour = START_HOUR;
     int inventory[INVENTORY_SIZE] = {1, 2, 1, 3, 0, 2, 6, 3, 1, 4};
 
-    // массив для названий предметов (3 лаба)
+    char farmer_name[MAX_NAME_LEN];
     char item_names[MAX_ITEMS][MAX_NAME_LEN];
+
     if (load_items(item_names) == 0) {
-        printf("[Предупреждение] Файл items.txt не найден! Загружены стандартные названия.\n");
+        printf("[Предупреждение] Файл items.txt не найден! Включены стандартные названия.\n");
     }
 
+    printf("=== Вторые шаги весёлого фермера ===\n");
+    printf("Введите имя вашего фермера (одним словом): ");
+    scanf("%31s", farmer_name);
+    clear_input();
+
     int choice = -1;
+
     while (1) {
-        printf("\n---------------- МЕНЮ ----------------\n");
+        printf("\n---------------- МЕНЮ (Фермер: %s) ----------------\n", farmer_name);
         printf("[1] Посмотреть на часы\n");
         printf("[2] Промотать время (Поработать)\n");
         printf("[3] Посмотреть инвентарь\n");
         printf("[4] Положить предмет в слот\n");
         printf("[5] Выбросить предмет\n");
         printf("[6] Устранить дубликаты (Вариант 10)\n");
+        printf("[7] Поиск предмета в рюкзаке по названию\n");
+        printf("[8] Записать состояние в дневник (diary.txt)\n");
+        printf("[9] Распаковать сжатую карту (Вариант 10)\n");
         printf("[0] Выход\n");
-        printf("--------------------------------------\n");
+        printf("----------------------------------------------------\n");
         printf("Выберите пункт меню: ");
 
         if (scanf("%d", &choice) != 1) {
@@ -127,7 +166,7 @@ int main() {
         clear_input();
 
         if (choice == 0) {
-            printf("Выход из игры. До встречи!\n");
+            printf("Выход из игры. До встречи, %s!\n", farmer_name);
             break;
         }
 
@@ -171,11 +210,11 @@ int main() {
                 clear_input();
 
                 if (slot_index < 0 || slot_index >= INVENTORY_SIZE) {
-                    printf("Ошибка! Такого слота нет. Допустимы слоты от 0 до %d.\n", INVENTORY_SIZE - 1);
+                    printf("Ошибка! Допустимы слоты от 0 до %d.\n", INVENTORY_SIZE - 1);
                     break;
                 }
 
-                printf("Доступные предметы:\n");
+                printf("Доступные предметы в каталоге:\n");
                 for (int i = MIN_ITEM_ID; i <= MAX_ITEM_ID; i++) {
                     printf("%d - %s\n", i, item_names[i]);
                 }
@@ -201,7 +240,6 @@ int main() {
             case 5: {
                 int slot_index = 0;
                 printf("Введите номер слота для очистки (от 0 до %d): ", INVENTORY_SIZE - 1);
-
                 if (scanf("%d", &slot_index) != 1) {
                     printf("Ошибка! Нужно ввести число.\n");
                     clear_input();
@@ -210,7 +248,7 @@ int main() {
                 clear_input();
 
                 if (slot_index < 0 || slot_index >= INVENTORY_SIZE) {
-                    printf("Ошибка! Такого слота нет. Допустимы слоты от 0 до %d.\n", INVENTORY_SIZE - 1);
+                    printf("Ошибка! Допустимы слоты от 0 до %d.\n", INVENTORY_SIZE - 1);
                     break;
                 }
 
@@ -225,19 +263,53 @@ int main() {
             }
 
             case 6: {
-                printf("\n--- Инвентарь до устранения дубликатов ---\n");
+                printf("\n--- Инвентарь ДО устранения дубликатов ---\n");
                 print_inventory(inventory, item_names);
 
-                int removed_count = remove_duplicates(inventory);
+                int removed = remove_duplicates(inventory);
 
-                printf("\n--- Инвентарь после устранения дубликатов ---\n");
+                printf("\n--- Инвентарь ПОСЛЕ устранения дубликатов ---\n");
                 print_inventory(inventory, item_names);
-                printf("Убрано дубликатов: %d\n", removed_count);
+                printf("Убрано дубликатов: %d\n", removed);
+                break;
+            }
+
+            case 7: {
+                char search_name[MAX_NAME_LEN];
+                printf("Введите название предмета для поиска (например, Дерево): ");
+                scanf("%31s", search_name);
+                clear_input();
+
+                int id = find_item_id(item_names, search_name);
+                if (id == -1) {
+                    printf("Предмета с таким названием нет в каталоге!\n");
+                } else {
+                    int found = 0;
+                    printf("Предмет \"%s\" (ID %d) найден в слотах: ", search_name, id);
+                    for (int i = 0; i < INVENTORY_SIZE; i++) {
+                        if (inventory[i] == id) {
+                            printf("[%d] ", i);
+                            found = 1;
+                        }
+                    }
+                    if (!found) printf("нет в рюкзаке (0 шт.).");
+                    printf("\n");
+                }
+                break;
+            }
+
+            case 8: {
+                write_diary(farmer_name, current_day, current_hour, inventory, item_names);
+                break;
+            }
+
+            case 9: {
+                unpack_map_task();
                 break;
             }
 
             default: {
-                printf("Такого пункта нет в меню! Выберите число от 0 до 6\n");
+                printf("Такого пункта нет в меню! Выберите число от 0 до 9.\n");
                 break;
             }
         }
@@ -245,3 +317,5 @@ int main() {
 
     return 0;
 }
+
+```
