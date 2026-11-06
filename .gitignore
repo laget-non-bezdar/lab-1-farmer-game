@@ -1,8 +1,6 @@
-.vscode/
-
-game.exe
-
 *.exe
 *.o
-*.obj
-build/
+*.out
+.vs/
+diary.txt
+output.txt

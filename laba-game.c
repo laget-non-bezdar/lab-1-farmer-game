@@ -1,8 +1,13 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <locale.h>
-#include <windows.h>
+#include <string.h>
 
-// значения, которые там даны
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+// константы
 #define INVENTORY_SIZE 10
 #define HOURS_IN_DAY 24
 #define START_DAY 1
@@ -10,70 +15,98 @@
 #define MIN_ITEM_ID 1
 #define MAX_ITEM_ID 9
 
-// функция для вывода названия предмета по ID
-void print_item_name(int id) {
-    switch (id) {
-        case 0: printf("Пусто"); break;
-        case 1: printf("Дерево"); break;
-        case 2: printf("Камень"); break;
-        case 3: printf("Семена"); break;
-        case 4: printf("Лейка"); break;
-        case 5: printf("Мотыга"); break;
-        case 6: printf("Яблоко"); break;
-        case 7: printf("Пшеница"); break;
-        case 8: printf("Молоко"); break;
-        case 9: printf("Золотая монета"); break;
-        default: printf("Неизвестный предмет"); break;
-    }
-}
+// новые константы
+#define MAX_ITEMS 10
+#define MAX_NAME_LEN 32
+#define MAX_LINE_LEN 256
 
-// функция для вывода всего инвентаря
-void print_inventory(int inventory[]) {
-    for (int i = 0; i < INVENTORY_SIZE; i++) {
-        if (inventory[i] == 0) {
-            printf("Слот %d: [0] (Пусто)\n", i);
-        } else {
-            printf("Слот %d: [%d] (", i, inventory[i]);
-            print_item_name(inventory[i]);
-            printf(")\n");
-        }
-    }
-}
-
-// очистка буфера ввода (е мае защита от дурака)
+// очистка буфера ввода
 void clear_input() {
     int ch;
     while ((ch = getchar()) != '\n' && ch != EOF);
 }
 
+// загрузка названий предметов из файла items.txt
+int load_items(char item_names[MAX_ITEMS][MAX_NAME_LEN]) {
+    strcpy(item_names[0], "Пусто");
+    strcpy(item_names[1], "Дерево");
+    strcpy(item_names[2], "Камень");
+    strcpy(item_names[3], "Семена");
+    strcpy(item_names[4], "Лейка");
+    strcpy(item_names[5], "Мотыга");
+    strcpy(item_names[6], "Яблоко");
+    strcpy(item_names[7], "Пшеница");
+    strcpy(item_names[8], "Молоко");
+    strcpy(item_names[9], "Золотая_монета");
+
+    FILE *file = fopen("items.txt", "r");
+    if (file == NULL) {
+        return 0;
+    }
+
+    int id;
+    char name[MAX_NAME_LEN];
+    while (fscanf(file, "%d %31s", &id, name) == 2) {
+        if (id >= 0 && id < MAX_ITEMS) {
+            strcpy(item_names[id], name);
+        }
+    }
+    fclose(file);
+    return 1;
+}
+
+// вывод всего инвентаря с названиями из массива
+void print_inventory(int inventory[], char item_names[MAX_ITEMS][MAX_NAME_LEN]) {
+    for (int i = 0; i < INVENTORY_SIZE; i++) {
+        int id = inventory[i];
+        printf("Слот %d: [%d] - %s\n", i, id, item_names[id]);
+    }
+}
+
+// пересчет времени
+void add_work_time(int work_hours, int *current_day, int *current_hour) {
+    *current_hour = *current_hour + work_hours;
+    if (*current_hour >= HOURS_IN_DAY) {
+        *current_day = *current_day + (*current_hour / HOURS_IN_DAY);
+        *current_hour = *current_hour % HOURS_IN_DAY;
+    }
+}
+
+// устранение дубликатов
+int remove_duplicates(int inventory[]) {
+    int removed_count = 0;
+    for (int i = 0; i < INVENTORY_SIZE; i++) {
+        if (inventory[i] == 0) {
+            continue;
+        }
+        for (int j = i + 1; j < INVENTORY_SIZE; j++) {
+            if (inventory[j] == inventory[i]) {
+                inventory[j] = 0;
+                removed_count++;
+            }
+        }
+    }
+    return removed_count;
+}
+
 int main() {
-    // русский язык не помешает поди
+    setlocale(LC_ALL, "");
+#ifdef _WIN32
     SetConsoleCP(65001);
     SetConsoleOutputCP(65001);
+#endif
 
-    // инициализация начальных переменных
     int current_day = START_DAY;
     int current_hour = START_HOUR;
+    int inventory[INVENTORY_SIZE] = {1, 2, 1, 3, 0, 2, 6, 3, 1, 4};
 
-    // создаем массив
-    int inventory[INVENTORY_SIZE] = {0};
-
-    // раскладываем предметы заранее специально под вариант 10 (с дубликатами)
-    inventory[0] = 1; // Дерево
-    inventory[1] = 2; // Камень
-    inventory[2] = 1; // Дерево (дубликат)
-    inventory[3] = 3; // Семена
-    inventory[4] = 0; // Пусто
-    inventory[5] = 2; // Камень (дубликат)
-    inventory[6] = 6; // Яблоко
-    inventory[7] = 3; // Семена (дубликат)
-    inventory[8] = 1; // Дерево (дубликат)
-    inventory[9] = 4; // Лейка
+    // массив для названий предметов (3 лаба)
+    char item_names[MAX_ITEMS][MAX_NAME_LEN];
+    if (load_items(item_names) == 0) {
+        printf("[Предупреждение] Файл items.txt не найден! Загружены стандартные названия.\n");
+    }
 
     int choice = -1;
-
-    printf("=== Первые шаги весёлого фермера ===\n");
-    // цикл 
     while (1) {
         printf("\n---------------- МЕНЮ ----------------\n");
         printf("[1] Посмотреть на часы\n");
@@ -86,21 +119,18 @@ int main() {
         printf("--------------------------------------\n");
         printf("Выберите пункт меню: ");
 
-        // защита от дураков не дураков
         if (scanf("%d", &choice) != 1) {
             printf("Ошибка! Нужно ввести целое число, а не буквы.\n");
             clear_input();
             continue;
         }
-        clear_input(); // убираем лишние символы
+        clear_input();
 
-        // если выбрали выход, то прерываем цикл
         if (choice == 0) {
             printf("Выход из игры. До встречи!\n");
             break;
         }
 
-        // обработка выбора через switch (по методичке)
         switch (choice) {
             case 1: {
                 printf("Текущее время: День %d, %02d:00\n", current_day, current_hour);
@@ -110,7 +140,6 @@ int main() {
             case 2: {
                 int work_hours = 0;
                 printf("Сколько часов вы хотите поработать? ");
-
                 if (scanf("%d", &work_hours) != 1 || work_hours <= 0) {
                     printf("Ошибка! Количество часов должно быть положительным числом.\n");
                     clear_input();
@@ -118,21 +147,14 @@ int main() {
                 }
                 clear_input();
 
-                current_hour = current_hour + work_hours;
-
-                // если часов стало 24+, то новый день
-                if (current_hour >= HOURS_IN_DAY) {
-                    current_day = current_day + (current_hour / HOURS_IN_DAY);
-                    current_hour = current_hour % HOURS_IN_DAY;
-                }
-
+                add_work_time(work_hours, &current_day, &current_hour);
                 printf("Вы хорошо потрудились! Теперь: День %d, %02d:00\n", current_day, current_hour);
                 break;
             }
 
             case 3: {
                 printf("\nСодержимое вашего рюкзака:\n");
-                print_inventory(inventory);
+                print_inventory(inventory, item_names);
                 break;
             }
 
@@ -148,15 +170,15 @@ int main() {
                 }
                 clear_input();
 
-                // проверка границ
                 if (slot_index < 0 || slot_index >= INVENTORY_SIZE) {
                     printf("Ошибка! Такого слота нет. Допустимы слоты от 0 до %d.\n", INVENTORY_SIZE - 1);
                     break;
                 }
 
                 printf("Доступные предметы:\n");
-                printf("1 - Дерево, 2 - Камень, 3 - Семена, 4 - Лейка, 5 - Тяпка,\n");
-                printf("6 - Яблоко, 7 - Пшеница, 8 - Молоко, 9 - Золотая монета\n");
+                for (int i = MIN_ITEM_ID; i <= MAX_ITEM_ID; i++) {
+                    printf("%d - %s\n", i, item_names[i]);
+                }
                 printf("Введите ID предмета (от %d до %d): ", MIN_ITEM_ID, MAX_ITEM_ID);
 
                 if (scanf("%d", &item_id) != 1) {
@@ -172,9 +194,7 @@ int main() {
                 }
 
                 inventory[slot_index] = item_id;
-                printf("Предмет [");
-                print_item_name(item_id);
-                printf("] успешно положен в слот %d!\n", slot_index);
+                printf("Предмет [%s] успешно положен в слот %d!\n", item_names[item_id], slot_index);
                 break;
             }
 
@@ -197,40 +217,21 @@ int main() {
                 if (inventory[slot_index] == 0) {
                     printf("Слот %d уже пуст.\n", slot_index);
                 } else {
-                    printf("Предмет [");
-                    print_item_name(inventory[slot_index]);
-                    printf("] выброшен из слота %d.\n", slot_index);
+                    int old_id = inventory[slot_index];
                     inventory[slot_index] = 0;
+                    printf("Предмет [%s] выброшен из слота %d.\n", item_names[old_id], slot_index);
                 }
                 break;
             }
 
             case 6: {
-                // вариант 10 пошло задание короче
-                printf("\n--- Инвентарь ДО устранения дубликатов ---\n");
-                print_inventory(inventory);
+                printf("\n--- Инвентарь до устранения дубликатов ---\n");
+                print_inventory(inventory, item_names);
 
-                int removed_count = 0;
+                int removed_count = remove_duplicates(inventory);
 
-                // берем каждый слот по очереди 
-                for (int i = 0; i < INVENTORY_SIZE; i++) {
-                    // пустые слоты скипаем, ибо задание такое
-                    if (inventory[i] == 0) {
-                        continue;
-                    }
-
-                    // проверяем следующие слоты справа от него
-                    for (int j = i + 1; j < INVENTORY_SIZE; j++) {
-                        // если нашли точно такой же предмет — "делим на ноль" его XD
-                        if (inventory[j] == inventory[i]) {
-                            inventory[j] = 0;
-                            removed_count++;
-                        }
-                    }
-                }
-
-                printf("\n--- Инвентарь ПОСЛЕ устранения дубликатов ---\n");
-                print_inventory(inventory);
+                printf("\n--- Инвентарь после устранения дубликатов ---\n");
+                print_inventory(inventory, item_names);
                 printf("Убрано дубликатов: %d\n", removed_count);
                 break;
             }
